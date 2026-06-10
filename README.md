@@ -135,7 +135,8 @@ All responses use `{ data, error }`.
 - Priority sorting uses in-memory ordering (high > medium > low) after fetching filtered rows; suitable for paginated personal task lists.
 - Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE, task file attachments, Docker Compose one-command local setup.
 - Real-time updates use an in-process SSE pub/sub channel (works for local dev and single-instance deploys; multi-instance production would need a shared bus).
-- Attachments are stored on the local filesystem under `UPLOAD_DIR` (default `.uploads/`). Suitable for local dev and single-instance deploys with persistent disk; production would typically use object storage.
+- Attachments are stored on the local filesystem under `UPLOAD_DIR` (default `.uploads/`). This works for local dev, Docker Compose (persistent volume), and any single-server deploy with a writable disk.
+- **Attachments on Vercel:** Vercel serverless functions use an ephemeral filesystem — uploaded files are not persisted across redeploys or cold starts. Task CRUD, auth, activity log, SSE, and admin features work normally in production; only file attachments need object storage (e.g. Supabase Storage, S3) for durable production use. For the assessment demo, attachments are best tested locally or via Docker Compose.
 
 ## Deployment
 
@@ -146,12 +147,33 @@ Recommended setup:
 | Next.js app | Vercel |
 | PostgreSQL | Neon or Supabase |
 
+### Supabase database (local or production)
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. In **Project Settings → Database**, copy the **URI** under **Connection string → Direct connection** (use direct connection for Prisma migrations, not the pooler-only URL).
+3. Replace `[YOUR-PASSWORD]` with your database password.
+4. Put the URI in `.env` as `DATABASE_URL` (append `?sslmode=require` if it is not already in the string).
+5. Apply migrations from your machine:
+
+```bash
+npx prisma migrate deploy
+```
+
+6. Start the app locally against Supabase:
+
+```bash
+npm run dev
+```
+
+For **Vercel**, use the **Transaction pooler** connection string (port `6543`) as `DATABASE_URL` in Vercel env vars for runtime, but run `prisma migrate deploy` once from your laptop using the **direct** connection string above.
+
 Steps:
 
-1. Create a managed PostgreSQL database and copy the connection string.
-2. Configure Vercel env vars: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`.
-3. Run `npx prisma migrate deploy` against production once from your machine or CI.
+1. Create a managed PostgreSQL database (Supabase or Neon) and copy the connection string.
+2. Configure Vercel env vars: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`, `NEXT_PUBLIC_APP_URL`.
+3. Run `npx prisma migrate deploy` against production once from your machine (direct Supabase connection).
 4. Deploy the Next.js app to Vercel (`postinstall` runs `prisma generate`).
+5. Smoke-test signup and task CRUD on the live URL. Test attachments locally or via Docker — see note above for Vercel.
 
 ## Testing
 
