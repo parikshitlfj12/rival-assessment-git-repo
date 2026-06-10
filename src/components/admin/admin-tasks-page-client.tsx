@@ -4,8 +4,8 @@ import { UserRole } from "@prisma/client";
 import { motion } from "framer-motion";
 import { LayoutList, Paperclip } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { AdminAttachmentsModal } from "@/components/admin/admin-attachments-modal";
 import { AppShell } from "@/components/layout/app-shell";
 import { listContainer, listItem } from "@/components/motion/fade-in";
@@ -22,16 +22,22 @@ import {
   formatDate,
   type AdminTasksListResponse,
 } from "@/lib/api-client";
-import { buildTaskListQuery } from "@/lib/task-query";
 import type { AdminTaskDto, UserDto } from "@/lib/dto";
 import { TaskListToolbar } from "@/components/tasks/task-list-toolbar";
 import { useTaskListParams } from "@/hooks/use-task-list-params";
 
 export function AdminTasksPageClient() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { searchInput, setSearchInput, updateParams, page, sort, order, status } =
-    useTaskListParams({ basePath: "/admin/tasks" });
+  const {
+    searchInput,
+    setSearchInput,
+    updateParams,
+    page,
+    sort,
+    order,
+    status,
+    listQueryString,
+  } = useTaskListParams({ basePath: "/admin/tasks" });
 
   const [user, setUser] = useState<UserDto | null>(null);
   const [data, setData] = useState<AdminTasksListResponse | null>(null);
@@ -39,13 +45,15 @@ export function AdminTasksPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [attachmentsTask, setAttachmentsTask] = useState<AdminTaskDto | null>(null);
 
-  const queryString = useMemo(() => buildTaskListQuery(searchParams), [searchParams]);
-
   const loadTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await adminApi.list(queryString);
+      const result = await adminApi.list(listQueryString);
+      if (result.pagination.total > 0 && page > result.pagination.totalPages) {
+        updateParams({ page: String(result.pagination.totalPages) });
+        return;
+      }
       setData(result);
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 401) {
@@ -60,7 +68,7 @@ export function AdminTasksPageClient() {
     } finally {
       setLoading(false);
     }
-  }, [queryString, router]);
+  }, [listQueryString, page, router, updateParams]);
 
   useEffect(() => {
     authApi
@@ -126,7 +134,13 @@ export function AdminTasksPageClient() {
           ))}
         </div>
       ) : !data?.items.length ? (
-        <EmptyState title="No tasks found" description="No tasks match the current filters." />
+        <div className="flex min-h-[calc(100dvh-18rem)] w-full flex-1 items-center justify-center py-8">
+          <EmptyState
+            className="w-full max-w-none"
+            title="No tasks found"
+            description="No tasks match the current filters."
+          />
+        </div>
       ) : (
         <>
           <div className="hidden overflow-hidden rounded-2xl border border-border bg-card shadow-sm md:block">
@@ -213,8 +227,9 @@ export function AdminTasksPageClient() {
 
           <div className="mt-4">
             <Pagination
-              page={page}
+              page={data.pagination.page}
               totalPages={data.pagination.totalPages}
+              total={data.pagination.total}
               onPageChange={(nextPage) => updateParams({ page: String(nextPage) })}
             />
           </div>

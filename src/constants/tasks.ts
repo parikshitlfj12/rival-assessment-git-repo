@@ -2,6 +2,11 @@ import { TaskStatus } from "@prisma/client";
 
 export const TASK_QUERY_KEYS = ["status", "search", "sort", "order", "page", "limit"] as const;
 
+export const DEFAULT_TASK_SORT = "created_at";
+export const DEFAULT_TASK_ORDER = "desc";
+export const DEFAULT_TASK_PAGE = 1;
+export const DEFAULT_TASK_LIMIT = 10;
+
 export const STATUS_FILTERS = [
   { label: "All", value: "" },
   { label: "Todo", value: TaskStatus.todo },

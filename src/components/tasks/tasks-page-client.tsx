@@ -12,8 +12,8 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { listContainer, listItem } from "@/components/motion/fade-in";
@@ -34,16 +34,22 @@ import {
   tasksApi,
   type TasksListResponse,
 } from "@/lib/api-client";
-import { buildTaskListQuery } from "@/lib/task-query";
 import type { TaskDto, UserDto } from "@/lib/dto";
 import { TaskListToolbar } from "@/components/tasks/task-list-toolbar";
 import { useTaskListParams } from "@/hooks/use-task-list-params";
 
 export function TasksPageClient() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { searchInput, setSearchInput, updateParams, page, sort, order, status } =
-    useTaskListParams({ basePath: "/tasks" });
+  const {
+    searchInput,
+    setSearchInput,
+    updateParams,
+    page,
+    sort,
+    order,
+    status,
+    listQueryString,
+  } = useTaskListParams({ basePath: "/tasks" });
 
   const [user, setUser] = useState<UserDto | null>(null);
   const [data, setData] = useState<TasksListResponse | null>(null);
@@ -53,14 +59,17 @@ export function TasksPageClient() {
   const [editingTask, setEditingTask] = useState<TaskDto | null>(null);
   const [deleteTask, setDeleteTask] = useState<TaskDto | null>(null);
   const [activityTask, setActivityTask] = useState<TaskDto | null>(null);
-
-  const queryString = useMemo(() => buildTaskListQuery(searchParams), [searchParams]);
+  const hasActiveFilters = Boolean(status || searchInput.trim());
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await tasksApi.list(queryString);
+      const result = await tasksApi.list(listQueryString);
+      if (result.pagination.total > 0 && page > result.pagination.totalPages) {
+        updateParams({ page: String(result.pagination.totalPages) });
+        return;
+      }
       setData(result);
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 401) {
@@ -71,16 +80,16 @@ export function TasksPageClient() {
     } finally {
       setLoading(false);
     }
-  }, [queryString, router]);
+  }, [listQueryString, page, router, updateParams]);
 
   const refreshTasksQuietly = useCallback(async () => {
     try {
-      const result = await tasksApi.list(queryString);
+      const result = await tasksApi.list(listQueryString);
       setData(result);
     } catch {
       // Ignore background refresh errors; explicit loads still surface errors.
     }
-  }, [queryString]);
+  }, [listQueryString]);
 
   useEffect(() => {
     authApi
@@ -119,46 +128,12 @@ export function TasksPageClient() {
   }
 
   async function handleCreate(payload: Record<string, unknown>) {
-    const tempId = `temp-${Date.now()}`;
-    const optimisticTask: TaskDto = {
-      id: tempId,
-      userId: user?.id ?? "",
-      title: String(payload.title ?? ""),
-      description: (payload.description as string | undefined) ?? null,
-      status: (payload.status as TaskDto["status"]) ?? TaskStatus.todo,
-      priority: (payload.priority as TaskDto["priority"]) ?? "medium",
-      dueDate: (payload.dueDate as string | null) ?? null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const previous = data;
-    if (previous) {
-      setData({
-        ...previous,
-        items: [optimisticTask, ...previous.items],
-        pagination: {
-          ...previous.pagination,
-          total: previous.pagination.total + 1,
-        },
-      });
-    }
-
     try {
       const created = await tasksApi.create(payload);
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((item) => (item.id === tempId ? created : item)),
-            }
-          : current,
-      );
       toast.success("Task created");
       updateParams({ status: null, page: "1" });
       return created;
     } catch (error) {
-      if (previous) setData(previous);
       toast.error(error instanceof ApiClientError ? error.message : "Failed to create task");
       throw error;
     }
@@ -167,46 +142,19 @@ export function TasksPageClient() {
   async function handleUpdate(payload: Record<string, unknown>) {
     if (!editingTask) throw new Error("No task selected");
     const updated = await tasksApi.update(editingTask.id, payload);
-    setData((current) =>
-      current
-        ? {
-            ...current,
-            items: current.items.map((item) => (item.id === updated.id ? updated : item)),
-          }
-        : current,
-    );
     toast.success("Task updated");
+    await refreshTasksQuietly();
     return updated;
   }
 
   async function handleMarkComplete(task: TaskDto) {
     if (task.status === TaskStatus.done) return;
 
-    const previous = data;
-    setData((current) =>
-      current
-        ? {
-            ...current,
-            items: current.items.map((item) =>
-              item.id === task.id ? { ...item, status: TaskStatus.done } : item,
-            ),
-          }
-        : current,
-    );
-
     try {
-      const updated = await tasksApi.update(task.id, { status: TaskStatus.done });
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((item) => (item.id === updated.id ? updated : item)),
-            }
-          : current,
-      );
+      await tasksApi.update(task.id, { status: TaskStatus.done });
       toast.success("Task marked complete");
+      await refreshTasksQuietly();
     } catch (error) {
-      if (previous) setData(previous);
       toast.error(error instanceof ApiClientError ? error.message : "Failed to update task");
     }
   }
@@ -294,13 +242,17 @@ export function TasksPageClient() {
       ) : null}
 
       {!loading && !error && data?.items.length === 0 ? (
-        <div className="flex min-h-[calc(100dvh-18rem)] flex-1 items-center justify-center py-8">
+        <div className="flex min-h-[calc(100dvh-18rem)] w-full flex-1 items-center justify-center py-8">
           <EmptyState
-            className="max-w-none"
-            title="No tasks yet"
-            description="Create your first task to start tracking your work."
-            actionLabel="Create your first task"
-            onAction={openCreateModal}
+            className="w-full max-w-none"
+            title={hasActiveFilters ? "No tasks found" : "No tasks yet"}
+            description={
+              hasActiveFilters
+                ? "No tasks match the current filters."
+                : "Create your first task to start tracking your work."
+            }
+            actionLabel={hasActiveFilters ? undefined : "Create your first task"}
+            onAction={hasActiveFilters ? undefined : openCreateModal}
           />
         </div>
       ) : null}
@@ -451,8 +403,9 @@ export function TasksPageClient() {
           </motion.div>
 
           <Pagination
-            page={page}
+            page={data.pagination.page}
             totalPages={data.pagination.totalPages}
+            total={data.pagination.total}
             onPageChange={(nextPage) => updateParams({ page: String(nextPage) })}
           />
         </div>

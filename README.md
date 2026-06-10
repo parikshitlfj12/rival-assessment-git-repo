@@ -82,6 +82,30 @@ npm run docker:up
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Demo accounts
+
+Seed sample users and tasks for reviewers:
+
+```bash
+npm run db:seed
+```
+
+Run this after migrations against your database (local, Docker Postgres on port 5432, or Supabase).
+
+| Role | Email | Password |
+|------|-------|----------|
+| User | `demo@example.com` | `demo1234` |
+| Admin | `admin@example.com` | `admin1234` |
+
+Set `ADMIN_EMAILS=admin@example.com` (already the default in Docker Compose) so the admin account has the admin role.
+
+**What gets seeded**
+
+- **Demo user** — 6 tasks across todo / in progress / done, mixed priorities, due dates, search-friendly titles, one attachment, activity history on an in-progress task
+- **Admin user** — 3 tasks so the admin dashboard shows multiple owners
+
+To re-seed, run `npm run db:seed` again (demo users are replaced, not duplicated).
+
 The compose file starts:
 
 1. **db** — PostgreSQL 16 with a persistent volume
@@ -133,6 +157,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run db:migrate:deploy` | Apply migrations in production |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run db:push` | Push schema without migration history |
+| `npm run db:seed` | Insert demo users and sample tasks for reviewers |
 | `npm run docker:up` | Build and start app + Postgres via Docker Compose |
 | `npm run docker:down` | Stop Docker Compose services |
 | `npm run docker:reset` | Stop services and delete Docker volumes |
@@ -246,3 +271,4 @@ npm run test
 ## Submission
 
 - **Live app:** [https://rival-assessment-git-repo.vercel.app/](https://rival-assessment-git-repo.vercel.app/)
+- **Demo login:** `demo@example.com` / `demo1234` (user) · `admin@example.com` / `admin1234` (admin — run `npm run db:seed` on the deployed database first)
