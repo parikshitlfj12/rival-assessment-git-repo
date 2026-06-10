@@ -1,5 +1,6 @@
 import { Prisma, TaskActivityAction, TaskPriority } from "@prisma/client";
 import { buildTaskChanges, recordTaskActivity } from "@/lib/activity";
+import { removeTaskAttachmentFiles } from "@/lib/attachments";
 import { prisma } from "@/lib/db";
 import { toAdminTaskDto, toTaskDto, type AdminTaskDto, type TaskDto } from "@/lib/dto";
 import { publishTaskEvent } from "@/lib/task-events";
@@ -187,6 +188,7 @@ export async function deleteTask(userId: string, taskId: string): Promise<boolea
   const existing = await prisma.task.findFirst({ where: { id: taskId, userId } });
   if (!existing) return false;
   await prisma.task.delete({ where: { id: taskId } });
+  await removeTaskAttachmentFiles(taskId);
   publishTaskEvent(userId, { type: "task:deleted", taskId });
   return true;
 }

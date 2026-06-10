@@ -1,14 +1,18 @@
+import { rm } from "node:fs/promises";
 import { NextRequest } from "next/server";
 import { UserRole } from "@prisma/client";
 import { hashPassword, createSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SESSION_COOKIE_NAME } from "@/lib/session";
+import { getUploadRoot } from "@/lib/uploads";
 
 export async function resetDatabase() {
+  await prisma.taskAttachment.deleteMany();
   await prisma.taskActivity.deleteMany();
   await prisma.task.deleteMany();
   await prisma.session.deleteMany();
   await prisma.user.deleteMany();
+  await rm(getUploadRoot(), { recursive: true, force: true });
 }
 
 export async function createTestUser(

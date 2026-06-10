@@ -70,6 +70,13 @@ All responses use `{ data, error }`.
 | GET | `/api/tasks/[id]` | Get one task |
 | PATCH | `/api/tasks/[id]` | Update task |
 | DELETE | `/api/tasks/[id]` | Hard delete task (204 empty body) |
+| GET | `/api/tasks/[id]/activity` | Task change history |
+| GET | `/api/tasks/[id]/attachments` | List attachments for a task |
+| POST | `/api/tasks/[id]/attachments` | Upload attachment (`multipart/form-data`, field `file`) |
+| GET | `/api/tasks/[id]/attachments/[attachmentId]` | Download attachment |
+| DELETE | `/api/tasks/[id]/attachments/[attachmentId]` | Remove attachment |
+| GET | `/api/tasks/events` | Server-sent events stream for task changes |
+| GET | `/api/admin/tasks` | Admin-only cross-user task list |
 
 ## Assumptions & trade-offs
 
@@ -82,8 +89,9 @@ All responses use `{ data, error }`.
 - Delete responses return HTTP 204 with an empty body.
 - Due date sorting uses NULLS LAST for ascending order and NULLS FIRST for descending order.
 - Priority sorting uses in-memory ordering (high > medium > low) after fetching filtered rows; suitable for paginated personal task lists.
-- Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE.
+- Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE, task file attachments.
 - Real-time updates use an in-process SSE pub/sub channel (works for local dev and single-instance deploys; multi-instance production would need a shared bus).
+- Attachments are stored on the local filesystem under `UPLOAD_DIR` (default `.uploads/`). Suitable for local dev and single-instance deploys with persistent disk; production would typically use object storage.
 
 ## Deployment
 

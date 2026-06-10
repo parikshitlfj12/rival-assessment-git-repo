@@ -1,4 +1,4 @@
-import type { Task, TaskActivity, User, UserRole } from "@prisma/client";
+import type { Task, TaskActivity, TaskAttachment, User, UserRole } from "@prisma/client";
 
 export type UserDto = {
   id: string;
@@ -36,6 +36,15 @@ export type TaskActivityDto = {
   actorEmail: string;
   action: "created" | "updated" | "deleted";
   changes: ActivityChangeDto[] | null;
+  createdAt: string;
+};
+
+export type TaskAttachmentDto = {
+  id: string;
+  taskId: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
   createdAt: string;
 };
 
@@ -83,5 +92,16 @@ export function toTaskActivityDto(activity: TaskActivity, actorEmail: string): T
     action: activity.action,
     changes: parseActivityChanges(activity.changes),
     createdAt: activity.createdAt.toISOString(),
+  };
+}
+
+export function toTaskAttachmentDto(attachment: TaskAttachment): TaskAttachmentDto {
+  return {
+    id: attachment.id,
+    taskId: attachment.taskId,
+    originalName: attachment.originalName,
+    mimeType: attachment.mimeType,
+    sizeBytes: attachment.sizeBytes,
+    createdAt: attachment.createdAt.toISOString(),
   };
 }

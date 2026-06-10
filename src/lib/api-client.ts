@@ -1,5 +1,5 @@
 import type { ApiEnvelope } from "@/lib/api-response";
-import type { AdminTaskDto, TaskActivityDto, TaskDto, UserDto } from "@/lib/dto";
+import type { AdminTaskDto, TaskActivityDto, TaskAttachmentDto, TaskDto, UserDto } from "@/lib/dto";
 
 export class ApiClientError extends Error {
   code: string;
@@ -102,6 +102,42 @@ export const activityApi = {
     apiFetch<TaskActivityListResponse>(`/api/tasks/${taskId}/activity`),
 };
 
+export type TaskAttachmentListResponse = {
+  items: TaskAttachmentDto[];
+};
+
+async function parseUploadResponse(response: Response): Promise<TaskAttachmentDto> {
+  const json = (await response.json()) as ApiEnvelope<TaskAttachmentDto>;
+  if (json.error) {
+    throw new ApiClientError(
+      json.error.code,
+      json.error.message,
+      response.status,
+      json.error.fields,
+    );
+  }
+  return json.data as TaskAttachmentDto;
+}
+
+export const attachmentsApi = {
+  list: (taskId: string) =>
+    apiFetch<TaskAttachmentListResponse>(`/api/tasks/${taskId}/attachments`),
+  upload: async (taskId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch(`/api/tasks/${taskId}/attachments`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    return parseUploadResponse(response);
+  },
+  delete: (taskId: string, attachmentId: string) =>
+    apiFetch<void>(`/api/tasks/${taskId}/attachments/${attachmentId}`, { method: "DELETE" }),
+  downloadUrl: (taskId: string, attachmentId: string) =>
+    `/api/tasks/${taskId}/attachments/${attachmentId}`,
+};
+
 const FIELD_LABELS: Record<string, string> = {
   title: "title",
   description: "description",
@@ -126,6 +162,12 @@ export function formatDate(iso: string | null): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(iso));
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function toDatetimeLocalValue(iso: string | null): string {

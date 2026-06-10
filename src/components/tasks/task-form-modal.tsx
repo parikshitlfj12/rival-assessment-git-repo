@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-client";
 import type { TaskDto } from "@/lib/dto";
 import { taskFormSchema } from "@/lib/validators/tasks";
+import { TaskAttachmentsPanel } from "@/components/tasks/task-attachments-panel";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -186,6 +187,7 @@ function TaskFormBody({
           }
         />
       </div>
+      {task ? <TaskAttachmentsPanel task={task} /> : null}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="ghost" onClick={onClose}>
           Cancel

@@ -14,5 +14,7 @@ beforeAll(async () => {
     throw new Error("DATABASE_URL is required for tests");
   }
 
+  process.env.UPLOAD_DIR = path.join(process.cwd(), ".test-uploads");
+
   await prisma.$connect();
 });
