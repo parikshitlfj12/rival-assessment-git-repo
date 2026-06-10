@@ -1,0 +1,53 @@
+name: rival-assessment
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rival_assessment
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rival_assessment"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/rival_assessment
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/rival_assessment
+      SESSION_SECRET: HgQxAPnMQyLoCSrDltb6QaO9w6Te0qQYW8ivG6VqYYY
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      UPLOAD_DIR: /app/uploads
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@example.com}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  uploads_data:

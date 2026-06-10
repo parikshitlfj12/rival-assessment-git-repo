@@ -17,10 +17,51 @@ A full-stack task management application built for the Rival assessment. Users c
 
 ## Prerequisites
 
-- Node.js 20+
-- PostgreSQL 14+
+- Node.js 20+ (for local development without Docker)
+- PostgreSQL 14+ (for local development without Docker)
+- Docker Desktop or Docker Engine + Compose v2 (for one-command setup)
 
-## Local setup
+## Quick start (Docker)
+
+Run the full stack (PostgreSQL, migrations, and app) with one command:
+
+```bash
+docker compose up --build
+```
+
+Or:
+
+```bash
+npm run docker:up
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+The compose file starts:
+
+1. **db** — PostgreSQL 16 with a persistent volume
+2. **migrate** — applies Prisma migrations once
+3. **app** — production Next.js server on port 3000
+
+Optional: set admin emails for the containerized app:
+
+```bash
+ADMIN_EMAILS=you@example.com docker compose up --build
+```
+
+Stop containers:
+
+```bash
+npm run docker:down
+```
+
+Remove containers and volumes (fresh database):
+
+```bash
+npm run docker:reset
+```
+
+## Local setup (without Docker)
 
 ```bash
 cp .env.example .env
@@ -47,6 +88,9 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run db:migrate:deploy` | Apply migrations in CI/production |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run db:push` | Push schema without migration history |
+| `npm run docker:up` | Build and start app + Postgres via Docker Compose |
+| `npm run docker:down` | Stop Docker Compose services |
+| `npm run docker:reset` | Stop services and delete Docker volumes |
 
 ## API overview
 
@@ -89,7 +133,7 @@ All responses use `{ data, error }`.
 - Delete responses return HTTP 204 with an empty body.
 - Due date sorting uses NULLS LAST for ascending order and NULLS FIRST for descending order.
 - Priority sorting uses in-memory ordering (high > medium > low) after fetching filtered rows; suitable for paginated personal task lists.
-- Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE, task file attachments.
+- Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE, task file attachments, Docker Compose one-command local setup.
 - Real-time updates use an in-process SSE pub/sub channel (works for local dev and single-instance deploys; multi-instance production would need a shared bus).
 - Attachments are stored on the local filesystem under `UPLOAD_DIR` (default `.uploads/`). Suitable for local dev and single-instance deploys with persistent disk; production would typically use object storage.
 

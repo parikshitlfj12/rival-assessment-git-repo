@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+.uploads
+.test-uploads
+.embedded-postgres
+.test-db-url
+.env
+.env.*
+!.env.example
+README.md
+IMPLEMENTATION_PROMPT.md
+*.md
+coverage
+.vscode
+.cursor
