@@ -202,7 +202,10 @@ async function listAdminTasksWithPrioritySort(
   const [allItems, total] = await prisma.$transaction([
     prisma.task.findMany({
       where,
-      include: { user: { select: { email: true } } },
+      include: {
+        user: { select: { email: true } },
+        _count: { select: { attachments: true } },
+      },
     }),
     prisma.task.count({ where }),
   ]);
@@ -218,7 +221,9 @@ async function listAdminTasksWithPrioritySort(
   const items = sorted.slice(skip, skip + query.limit);
 
   return {
-    items: items.map((task) => toAdminTaskDto(task, task.user.email)),
+    items: items.map((task) =>
+      toAdminTaskDto(task, task.user.email, task._count.attachments),
+    ),
     pagination: {
       page: query.page,
       limit: query.limit,
@@ -244,13 +249,18 @@ export async function listAllTasksAdmin(query: AdminListTasksQuery): Promise<Pag
       orderBy,
       skip,
       take: query.limit,
-      include: { user: { select: { email: true } } },
+      include: {
+        user: { select: { email: true } },
+        _count: { select: { attachments: true } },
+      },
     }),
     prisma.task.count({ where }),
   ]);
 
   return {
-    items: items.map((task) => toAdminTaskDto(task, task.user.email)),
+    items: items.map((task) =>
+      toAdminTaskDto(task, task.user.email, task._count.attachments),
+    ),
     pagination: {
       page: query.page,
       limit: query.limit,

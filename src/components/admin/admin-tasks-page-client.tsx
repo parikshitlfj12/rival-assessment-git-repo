@@ -177,14 +177,16 @@ export function AdminTasksPageClient() {
                       {formatDate(task.dueDate)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        className="min-h-9 px-3 text-xs"
-                        onClick={() => setAttachmentsTask(task)}
-                      >
-                        <Paperclip className="h-3.5 w-3.5" />
-                        Attachments
-                      </Button>
+                      {task.attachmentCount > 0 ? (
+                        <Button
+                          variant="ghost"
+                          className="min-h-9 px-3 text-xs"
+                          onClick={() => setAttachmentsTask(task)}
+                        >
+                          <Paperclip className="h-3.5 w-3.5" />
+                          Attachments
+                        </Button>
+                      ) : null}
                     </td>
                   </motion.tr>
                 ))}
@@ -212,14 +214,16 @@ export function AdminTasksPageClient() {
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">Due {formatDate(task.dueDate)}</p>
                 <div className="mt-3 flex justify-end">
-                  <Button
-                    variant="outline"
-                    className="min-h-9 px-3 text-xs"
-                    onClick={() => setAttachmentsTask(task)}
-                  >
-                    <Paperclip className="h-3.5 w-3.5" />
-                    Attachments
-                  </Button>
+                  {task.attachmentCount > 0 ? (
+                    <Button
+                      variant="outline"
+                      className="min-h-9 px-3 text-xs"
+                      onClick={() => setAttachmentsTask(task)}
+                    >
+                      <Paperclip className="h-3.5 w-3.5" />
+                      Attachments
+                    </Button>
+                  ) : null}
                 </div>
               </motion.article>
             ))}

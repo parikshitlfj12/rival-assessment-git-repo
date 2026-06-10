@@ -14,4 +14,5 @@ export type TaskDto = {
 
 export type AdminTaskDto = TaskDto & {
   ownerEmail: string;
+  attachmentCount: number;
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download, Paperclip } from "lucide-react";
+import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   ApiClientError,
@@ -80,7 +80,6 @@ export function AdminAttachmentsModal({ open, task, onClose }: AdminAttachmentsM
       {!loading && !error && items.length === 0 ? (
         <EmptyState
           compact
-          icon={<Paperclip className="h-6 w-6" aria-hidden />}
           title="No attachments"
           description="This task does not have any uploaded files."
         />

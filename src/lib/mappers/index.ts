@@ -27,10 +27,11 @@ export function toTaskDto(task: Task): TaskDto {
   };
 }
 
-export function toAdminTaskDto(task: Task, ownerEmail: string): AdminTaskDto {
+export function toAdminTaskDto(task: Task, ownerEmail: string, attachmentCount = 0): AdminTaskDto {
   return {
     ...toTaskDto(task),
     ownerEmail,
+    attachmentCount,
   };
 }
 
