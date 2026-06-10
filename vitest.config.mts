@@ -11,6 +11,7 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     globalSetup: ["./tests/global-setup.ts"],
     fileParallelism: false,
+    exclude: ["**/node_modules/**", "**/.next/**"],
   },
   resolve: {
     alias: {

@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
+import type { ApiEnvelope, ApiError } from "@/types/api";
 
-export type ApiError = {
-  code: string;
-  message: string;
-  fields?: Record<string, string>;
-};
-
-export type ApiEnvelope<T> = {
-  data: T | null;
-  error: ApiError | null;
-};
+export type { ApiEnvelope, ApiError };
 
 export function successResponse<T>(data: T, status = 200) {
   return NextResponse.json({ data, error: null } satisfies ApiEnvelope<T>, { status });

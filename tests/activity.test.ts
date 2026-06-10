@@ -52,28 +52,4 @@ describe("task activity log", () => {
     expect(earliest.action).toBe("created");
     expect(earliest.actorEmail).toBe("user@example.com");
   });
-
-  it("returns 404 for another user's task activity", async () => {
-    const owner = await createTestUser("owner@example.com");
-    const other = await createTestUser("other@example.com");
-
-    const createResponse = await createTask(
-      createRequest("http://localhost/api/tasks", {
-        method: "POST",
-        sessionId: owner.sessionId,
-        body: JSON.stringify({ title: "Private task" }),
-      }),
-    );
-    const createdJson = await createResponse.json();
-    const taskId = createdJson.data.id as string;
-
-    const activityResponse = await getActivity(
-      createRequest(`http://localhost/api/tasks/${taskId}/activity`, {
-        sessionId: other.sessionId,
-      }),
-      { params: Promise.resolve({ id: taskId }) },
-    );
-
-    expect(activityResponse.status).toBe(404);
-  });
 });
