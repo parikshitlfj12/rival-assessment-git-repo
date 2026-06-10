@@ -136,7 +136,7 @@ All responses use `{ data, error }`.
 - Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE, task file attachments, Docker Compose one-command local setup.
 - Real-time updates use an in-process SSE pub/sub channel (works for local dev and single-instance deploys; multi-instance production would need a shared bus).
 - Attachments are stored on the local filesystem under `UPLOAD_DIR` (default `.uploads/`). This works for local dev, Docker Compose (persistent volume), and any single-server deploy with a writable disk.
-- **Attachments on Vercel:** Vercel serverless functions use an ephemeral filesystem — uploaded files are not persisted across redeploys or cold starts. Task CRUD, auth, activity log, SSE, and admin features work normally in production; only file attachments need object storage (e.g. Supabase Storage, S3) for durable production use. For the assessment demo, attachments are best tested locally or via Docker Compose.
+- **Attachments on Vercel:** Serverless functions only allow writes under `/tmp`. Set `UPLOAD_DIR=/tmp/rival-uploads` (or similar) in Vercel env vars — without it, uploads fail because the project directory is read-only. With `/tmp`, uploads work for demo and single-session use, but files are **not** durable across redeploys, cold starts, or requests routed to a different instance. Task CRUD, auth, activity log, SSE, and admin work normally in production; durable attachments would need object storage (e.g. Supabase Storage, S3). Fully persistent attachment testing: local dev or Docker Compose.
 
 ## Deployment
 
@@ -170,10 +170,10 @@ For **Vercel**, use the **Transaction pooler** connection string (port `6543`) a
 Steps:
 
 1. Create a managed PostgreSQL database (Supabase or Neon) and copy the connection string.
-2. Configure Vercel env vars: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`, `NEXT_PUBLIC_APP_URL`.
+2. Configure Vercel env vars: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`, `NEXT_PUBLIC_APP_URL`, and `UPLOAD_DIR=/tmp/rival-uploads` if you want to demo attachments on the live URL.
 3. Run `npx prisma migrate deploy` against production once from your machine (direct Supabase connection).
 4. Deploy the Next.js app to Vercel (`postinstall` runs `prisma generate`).
-5. Smoke-test signup and task CRUD on the live URL. Test attachments locally or via Docker — see note above for Vercel.
+5. Smoke-test signup and task CRUD on the live URL. Optional: upload an attachment via **Edit task** on Vercel (demo-only; see trade-offs above). For persistent file storage, use local dev or Docker Compose.
 
 ## Testing
 
