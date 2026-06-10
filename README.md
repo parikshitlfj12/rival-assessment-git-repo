@@ -82,30 +82,6 @@ npm run docker:up
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Demo accounts
-
-Seed sample users and tasks for reviewers:
-
-```bash
-npm run db:seed
-```
-
-Run this after migrations against your database (local, Docker Postgres on port 5432, or Supabase).
-
-| Role | Email | Password |
-|------|-------|----------|
-| User | `demo@example.com` | `demo1234` |
-| Admin | `admin@example.com` | `admin1234` |
-
-Set `ADMIN_EMAILS=admin@example.com` (already the default in Docker Compose) so the admin account has the admin role.
-
-**What gets seeded**
-
-- **Demo user** — 6 tasks across todo / in progress / done, mixed priorities, due dates, search-friendly titles, one attachment, activity history on an in-progress task
-- **Admin user** — 3 tasks so the admin dashboard shows multiple owners
-
-To re-seed, run `npm run db:seed` again (demo users are replaced, not duplicated).
-
 The compose file starts:
 
 1. **db** — PostgreSQL 16 with a persistent volume
