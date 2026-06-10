@@ -1,15 +1,15 @@
 import { cn } from "@/lib/utils";
 
 const statusStyles = {
-  todo: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
-  done: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  todo: "bg-muted text-muted-foreground ring-muted-foreground/20",
+  in_progress: "bg-sky-500/10 text-sky-700 ring-sky-500/20 dark:text-sky-300",
+  done: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
 };
 
 const priorityStyles = {
-  low: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
-  medium: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  high: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
+  low: "bg-muted text-muted-foreground ring-muted-foreground/20",
+  medium: "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-300",
+  high: "bg-rose-500/10 text-rose-700 ring-rose-500/20 dark:text-rose-300",
 };
 
 const labels = {
@@ -36,7 +36,7 @@ export function Badge({ kind, value, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset",
         styles,
         className,
       )}
@@ -56,7 +56,7 @@ export function NeutralBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+        "inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground ring-1 ring-inset ring-border",
         className,
       )}
     >

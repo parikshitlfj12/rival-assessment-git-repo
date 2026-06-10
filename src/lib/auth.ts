@@ -1,9 +1,10 @@
 import bcrypt from "bcrypt";
+import { UserRole, type User } from "@prisma/client";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { toUserDto, type UserDto } from "@/lib/dto";
-import { isAdminRole } from "@/lib/roles";
+import { isAdminEmail, isAdminRole } from "@/lib/roles";
 import {
   getClearSessionCookieOptions,
   getSessionCookieOptions,
@@ -47,6 +48,16 @@ export function getSessionIdFromRequest(request: NextRequest): string | null {
   return request.cookies.get(SESSION_COOKIE_NAME)?.value ?? null;
 }
 
+async function syncAdminRoleForUser(user: User): Promise<User> {
+  if (isAdminEmail(user.email) && user.role !== UserRole.admin) {
+    return prisma.user.update({
+      where: { id: user.id },
+      data: { role: UserRole.admin },
+    });
+  }
+  return user;
+}
+
 export async function getSessionUserFromRequest(
   request: NextRequest,
 ): Promise<UserDto | null> {
@@ -59,7 +70,8 @@ export async function getSessionUserFromRequest(
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return null;
 
-  return toUserDto(user);
+  const synced = await syncAdminRoleForUser(user);
+  return toUserDto(synced);
 }
 
 export async function requireUser(request: NextRequest): Promise<UserDto> {

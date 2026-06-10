@@ -1,36 +1,65 @@
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
-type ButtonVariant = "primary" | "ghost" | "destructive" | "outline";
+type ButtonVariant = "primary" | "ghost" | "destructive" | "outline" | "secondary";
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-indigo-600 text-white hover:bg-indigo-500 focus-visible:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400",
+    "bg-primary text-primary-foreground shadow-sm hover:bg-[var(--primary-hover)] focus-visible:ring-ring",
+  secondary:
+    "bg-muted text-foreground hover:bg-muted/80 focus-visible:ring-ring",
   ghost:
-    "bg-transparent text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800",
+    "bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground focus-visible:ring-ring",
   destructive:
-    "bg-rose-600 text-white hover:bg-rose-500 focus-visible:ring-rose-500 dark:bg-rose-500 dark:hover:bg-rose-400",
+    "bg-destructive text-destructive-foreground shadow-sm hover:opacity-90 focus-visible:ring-destructive",
   outline:
-    "border border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800",
+    "border border-border bg-card text-foreground shadow-sm hover:bg-muted focus-visible:ring-ring",
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
+  loading?: boolean;
+  loadingText?: string;
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", type = "button", ...props }, ref) => (
-    <button
-      ref={ref}
-      type={type}
-      className={cn(
-        "inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-offset-zinc-950",
-        variants[variant],
-        className,
-      )}
-      {...props}
-    />
-  ),
+  (
+    {
+      className,
+      variant = "primary",
+      type = "button",
+      loading = false,
+      loadingText,
+      disabled,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
+    const isDisabled = disabled || loading;
+
+    return (
+      <button
+        ref={ref}
+        type={type}
+        disabled={isDisabled}
+        aria-busy={loading || undefined}
+        className={cn(
+          "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "disabled:pointer-events-none disabled:opacity-50",
+          "active:scale-[0.98]",
+          variants[variant],
+          className,
+        )}
+        {...props}
+      >
+        {loading ? <Spinner size="sm" className="shrink-0" /> : null}
+        {loading && loadingText ? loadingText : children}
+      </button>
+    );
+  },
 );
 
 Button.displayName = "Button";

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ApiClientError, authApi } from "@/lib/api-client";
 import { signupFormSchema } from "@/lib/validators/auth";
 import { Button } from "@/components/ui/button";
+import { FieldError, Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
 export function SignupForm() {
@@ -51,62 +52,54 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {formError ? (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
           {formError}
         </p>
       ) : null}
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Email
-        </label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
+          disabled={loading}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
-        {fields.email ? <p className="text-sm text-rose-600">{fields.email}</p> : null}
+        <FieldError message={fields.email} />
       </div>
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Password
-        </label>
+        <Label htmlFor="password">Password</Label>
         <Input
           id="password"
           type="password"
           autoComplete="new-password"
+          disabled={loading}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
-        {fields.password ? <p className="text-sm text-rose-600">{fields.password}</p> : null}
+        <FieldError message={fields.password} />
       </div>
       <div className="space-y-2">
-        <label
-          htmlFor="confirmPassword"
-          className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-        >
-          Confirm password
-        </label>
+        <Label htmlFor="confirmPassword">Confirm password</Label>
         <Input
           id="confirmPassword"
           type="password"
           autoComplete="new-password"
+          disabled={loading}
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
         />
-        {fields.confirmPassword ? (
-          <p className="text-sm text-rose-600">{fields.confirmPassword}</p>
-        ) : null}
+        <FieldError message={fields.confirmPassword} />
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Creating account…" : "Create account"}
+      <Button type="submit" className="w-full" loading={loading} loadingText="Creating account…">
+        Create account
       </Button>
-      <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+        <Link href="/login" className="font-semibold text-primary hover:underline">
           Sign in
         </Link>
       </p>

@@ -1,3 +1,4 @@
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type ErrorBannerProps = {
@@ -7,11 +8,14 @@ type ErrorBannerProps = {
 
 export function ErrorBanner({ message, onRetry }: ErrorBannerProps) {
   return (
-    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-medium">{message}</p>
+        <p className="flex items-start gap-2 text-sm font-medium">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          {message}
+        </p>
         {onRetry ? (
-          <Button variant="outline" onClick={onRetry}>
+          <Button variant="outline" className="shrink-0 border-destructive/30" onClick={onRetry}>
             Retry
           </Button>
         ) : null}

@@ -4,11 +4,16 @@ import { TextareaHTMLAttributes, forwardRef } from "react";
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement>
->(({ className, ...props }, ref) => (
+>(({ className, disabled, ...props }, ref) => (
   <textarea
     ref={ref}
+    disabled={disabled}
     className={cn(
-      "flex min-h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500",
+      "flex min-h-28 w-full resize-y rounded-xl border border-input bg-card px-3.5 py-2.5 text-sm text-foreground",
+      "placeholder:text-muted-foreground",
+      "transition-colors duration-200",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      "disabled:cursor-not-allowed disabled:opacity-50",
       className,
     )}
     {...props}

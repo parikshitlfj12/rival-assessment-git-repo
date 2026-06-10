@@ -13,9 +13,18 @@ import {
   MAX_ATTACHMENT_BYTES,
 } from "@/lib/validators/attachments";
 
-async function assertTaskOwnership(userId: string, taskId: string): Promise<boolean> {
+type AttachmentAccess = { userId: string; isAdmin?: boolean };
+
+async function canAccessTask(taskId: string, access: AttachmentAccess): Promise<boolean> {
+  if (access.isAdmin) {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { id: true },
+    });
+    return Boolean(task);
+  }
   const task = await prisma.task.findFirst({
-    where: { id: taskId, userId },
+    where: { id: taskId, userId: access.userId },
     select: { id: true },
   });
   return Boolean(task);
@@ -29,9 +38,10 @@ function bufferFromDbData(data: Buffer | Uint8Array | null | undefined): Buffer 
 export async function listTaskAttachments(
   userId: string,
   taskId: string,
+  options: { isAdmin?: boolean } = {},
 ): Promise<TaskAttachmentDto[] | null> {
-  const ownsTask = await assertTaskOwnership(userId, taskId);
-  if (!ownsTask) return null;
+  const allowed = await canAccessTask(taskId, { userId, isAdmin: options.isAdmin });
+  if (!allowed) return null;
 
   const attachments = await prisma.taskAttachment.findMany({
     where: { taskId },
@@ -46,7 +56,7 @@ export async function uploadTaskAttachment(
   taskId: string,
   file: File,
 ): Promise<{ attachment?: TaskAttachmentDto; error?: string }> {
-  const ownsTask = await assertTaskOwnership(userId, taskId);
+  const ownsTask = await canAccessTask(taskId, { userId });
   if (!ownsTask) {
     return { error: "NOT_FOUND" };
   }
@@ -89,9 +99,10 @@ export async function getTaskAttachmentFile(
   userId: string,
   taskId: string,
   attachmentId: string,
+  options: { isAdmin?: boolean } = {},
 ): Promise<{ attachment: TaskAttachmentDto; data: Buffer } | null> {
-  const ownsTask = await assertTaskOwnership(userId, taskId);
-  if (!ownsTask) return null;
+  const allowed = await canAccessTask(taskId, { userId, isAdmin: options.isAdmin });
+  if (!allowed) return null;
 
   const attachment = await prisma.taskAttachment.findFirst({
     where: { id: attachmentId, taskId },
@@ -116,7 +127,7 @@ export async function deleteTaskAttachment(
   taskId: string,
   attachmentId: string,
 ): Promise<boolean> {
-  const ownsTask = await assertTaskOwnership(userId, taskId);
+  const ownsTask = await canAccessTask(taskId, { userId });
   if (!ownsTask) return false;
 
   const attachment = await prisma.taskAttachment.findFirst({

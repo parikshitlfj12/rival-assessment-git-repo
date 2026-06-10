@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ApiClientError, authApi } from "@/lib/api-client";
 import { loginSchema } from "@/lib/validators/auth";
 import { Button } from "@/components/ui/button";
+import { FieldError, Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
 export function LoginForm() {
@@ -50,44 +51,42 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {formError ? (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
           {formError}
         </p>
       ) : null}
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Email
-        </label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
+          disabled={loading}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
-        {fields.email ? <p className="text-sm text-rose-600">{fields.email}</p> : null}
+        <FieldError message={fields.email} />
       </div>
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Password
-        </label>
+        <Label htmlFor="password">Password</Label>
         <Input
           id="password"
           type="password"
           autoComplete="current-password"
+          disabled={loading}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
-        {fields.password ? <p className="text-sm text-rose-600">{fields.password}</p> : null}
+        <FieldError message={fields.password} />
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Signing in…" : "Sign in"}
+      <Button type="submit" className="w-full" loading={loading} loadingText="Signing in…">
+        Sign in
       </Button>
-      <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-center text-sm text-muted-foreground">
         No account?{" "}
-        <Link href="/signup" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+        <Link href="/signup" className="font-semibold text-primary hover:underline">
           Create one
         </Link>
       </p>

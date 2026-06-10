@@ -1,10 +1,14 @@
 "use client";
 
 import { TaskStatus, UserRole } from "@prisma/client";
+import { motion } from "framer-motion";
+import { LayoutList, Paperclip, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AdminAttachmentsModal } from "@/components/admin/admin-attachments-modal";
+import { AppShell } from "@/components/layout/app-shell";
+import { listContainer, listItem } from "@/components/motion/fade-in";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -20,7 +24,7 @@ import {
   formatDate,
   type AdminTasksListResponse,
 } from "@/lib/api-client";
-import type { UserDto } from "@/lib/dto";
+import type { AdminTaskDto, UserDto } from "@/lib/dto";
 
 const statusFilters = [
   { label: "All", value: "" },
@@ -47,6 +51,7 @@ export function AdminTasksPageClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
+  const [attachmentsTask, setAttachmentsTask] = useState<AdminTaskDto | null>(null);
 
   const queryString = useMemo(() => buildQueryString(searchParams), [searchParams]);
 
@@ -124,154 +129,176 @@ export function AdminTasksPageClient() {
   const status = searchParams.get("status") ?? "";
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">
-              Admin
-            </p>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-              All users&apos; tasks
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/tasks">
-              <Button variant="outline">My tasks</Button>
-            </Link>
-            <ThemeToggle />
-            {user ? (
-              <span className="max-w-[180px] truncate text-sm text-zinc-600 dark:text-zinc-400">
-                {user.email}
-              </span>
-            ) : null}
-            <Button variant="outline" onClick={handleLogout}>
-              Logout
+    <AppShell
+      eyebrow="Admin"
+      title="All users' tasks"
+      eyebrowClassName="text-amber-600 dark:text-amber-400"
+      userEmail={user?.email}
+      onLogout={handleLogout}
+      navLinks={
+        <Link href="/tasks">
+          <Button variant="outline">
+            <LayoutList className="h-4 w-4" />
+            My tasks
+          </Button>
+        </Link>
+      }
+    >
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-card p-1.5 shadow-sm">
+          {statusFilters.map((filter) => (
+            <Button
+              key={filter.label}
+              variant={status === filter.value ? "primary" : "ghost"}
+              className="min-h-9 rounded-xl"
+              onClick={() => updateParams({ status: filter.value || null, page: "1" })}
+            >
+              {filter.label}
             </Button>
-          </div>
+          ))}
         </div>
-      </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {statusFilters.map((filter) => (
-              <Button
-                key={filter.label}
-                variant={status === filter.value ? "primary" : "outline"}
-                onClick={() => updateParams({ status: filter.value || null, page: "1" })}
-              >
-                {filter.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+        <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:grid-cols-[1fr_auto_auto]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              className="pl-9"
               placeholder="Search by title…"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
             />
-            <Select
-              value={sort}
-              onChange={(event) => updateParams({ sort: event.target.value, page: "1" })}
-            >
-              <option value="created_at">Created date</option>
-              <option value="due_date">Due date</option>
-              <option value="priority">Priority</option>
-            </Select>
-            <Select
-              value={order}
-              onChange={(event) => updateParams({ order: event.target.value, page: "1" })}
-            >
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </Select>
           </div>
+          <Select
+            value={sort}
+            onChange={(event) => updateParams({ sort: event.target.value, page: "1" })}
+          >
+            <option value="created_at">Created date</option>
+            <option value="due_date">Due date</option>
+            <option value="priority">Priority</option>
+          </Select>
+          <Select
+            value={order}
+            onChange={(event) => updateParams({ order: event.target.value, page: "1" })}
+          >
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </Select>
         </div>
+      </div>
 
-        {error ? <ErrorBanner message={error} onRetry={loadTasks} /> : null}
+      {error ? (
+        <div className="mb-4">
+          <ErrorBanner message={error} onRetry={loadTasks} />
+        </div>
+      ) : null}
 
-        {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <TaskRowSkeleton key={index} />
-            ))}
-          </div>
-        ) : !data?.items.length ? (
-          <EmptyState title="No tasks found" description="No tasks match the current filters." />
-        ) : (
-          <>
-            <div className="hidden overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 md:block">
-              <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-                <thead className="bg-zinc-100/80 dark:bg-zinc-900/80">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Title
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <TaskRowSkeleton key={index} />
+          ))}
+        </div>
+      ) : !data?.items.length ? (
+        <EmptyState title="No tasks found" description="No tasks match the current filters." />
+      ) : (
+        <>
+          <div className="hidden overflow-hidden rounded-2xl border border-border bg-card shadow-sm md:block">
+            <table className="min-w-full">
+              <thead className="border-b border-border bg-muted/50">
+                <tr>
+                  {["Title", "Owner", "Status", "Priority", "Due", ""].map((heading, index) => (
+                    <th
+                      key={`${heading}-${index}`}
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                    >
+                      {heading}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Owner
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Priority
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Due
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
-                  {data.items.map((task) => (
-                    <tr key={task.id}>
-                      <td className="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        {task.title}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        {task.ownerEmail}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge kind="status" value={task.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge kind="priority" value={task.priority} />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        {formatDate(task.dueDate)}
-                      </td>
-                    </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data.items.map((task) => (
+                  <motion.tr
+                    key={task.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="hover:bg-muted/30"
+                  >
+                    <td className="px-4 py-3 text-sm font-semibold text-foreground">{task.title}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{task.ownerEmail}</td>
+                    <td className="px-4 py-3">
+                      <Badge kind="status" value={task.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge kind="priority" value={task.priority} />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {formatDate(task.dueDate)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="ghost"
+                        className="min-h-9 px-3 text-xs"
+                        onClick={() => setAttachmentsTask(task)}
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                        Attachments
+                      </Button>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-            <div className="space-y-3 md:hidden">
-              {data.items.map((task) => (
-                <article
-                  key={task.id}
-                  className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-                >
-                  <h2 className="font-medium text-zinc-900 dark:text-zinc-100">{task.title}</h2>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{task.ownerEmail}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge kind="status" value={task.status} />
-                    <Badge kind="priority" value={task.priority} />
-                  </div>
-                  <p className="mt-2 text-sm text-zinc-500">Due {formatDate(task.dueDate)}</p>
-                </article>
-              ))}
-            </div>
+          <motion.div
+            variants={listContainer}
+            initial="hidden"
+            animate="show"
+            className="space-y-3 md:hidden"
+          >
+            {data.items.map((task) => (
+              <motion.article
+                key={task.id}
+                variants={listItem}
+                className="rounded-2xl border border-border bg-card p-4 shadow-sm"
+              >
+                <h2 className="font-semibold text-foreground">{task.title}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{task.ownerEmail}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge kind="status" value={task.status} />
+                  <Badge kind="priority" value={task.priority} />
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">Due {formatDate(task.dueDate)}</p>
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    variant="outline"
+                    className="min-h-9 px-3 text-xs"
+                    onClick={() => setAttachmentsTask(task)}
+                  >
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Attachments
+                  </Button>
+                </div>
+              </motion.article>
+            ))}
+          </motion.div>
 
+          <div className="mt-4">
             <Pagination
               page={page}
               totalPages={data.pagination.totalPages}
               onPageChange={(nextPage) => updateParams({ page: String(nextPage) })}
             />
-          </>
-        )}
-      </main>
-    </div>
+          </div>
+        </>
+      )}
+
+      <AdminAttachmentsModal
+        open={attachmentsTask !== null}
+        task={attachmentsTask}
+        onClose={() => setAttachmentsTask(null)}
+      />
+    </AppShell>
   );
 }

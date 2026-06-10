@@ -1,13 +1,22 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { ArrowRight, Clock, History } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ApiClientError, activityApi, formatDate, formatActivityMessage } from "@/lib/api-client";
+import {
+  ApiClientError,
+  activityApi,
+  formatActivityMessage,
+  formatDate,
+  formatDateTime,
+} from "@/lib/api-client";
 import type { TaskActivityDto, TaskDto } from "@/lib/dto";
+import { listContainer, listItem } from "@/components/motion/fade-in";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
-import { TaskRowSkeleton } from "@/components/ui/skeleton";
+import { ActivityRowSkeleton } from "@/components/ui/skeleton";
 
 type TaskActivityModalProps = {
   open: boolean;
@@ -47,11 +56,26 @@ export function TaskActivityModal({ open, task, onClose }: TaskActivityModalProp
   }, [open, task]);
 
   return (
-    <Dialog open={open} onClose={onClose} title={task ? `Activity · ${task.title}` : "Activity"}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Activity history"
+      description={task ? task.title : "Recent changes to this task."}
+      size="lg"
+      footer={
+        <Button
+          variant="outline"
+          onClick={onClose}
+          className="min-h-11 w-full sm:w-auto"
+        >
+          Close
+        </Button>
+      }
+    >
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <TaskRowSkeleton key={index} />
+            <ActivityRowSkeleton key={index} />
           ))}
         </div>
       ) : null}
@@ -60,46 +84,68 @@ export function TaskActivityModal({ open, task, onClose }: TaskActivityModalProp
 
       {!loading && !error && items.length === 0 ? (
         <EmptyState
+          compact
           title="No activity yet"
-          description="Changes to this task will appear here."
+          description="Edits and status changes will appear here as they happen."
+          icon={<History className="h-7 w-7" aria-hidden />}
         />
       ) : null}
 
       {!loading && !error && items.length > 0 ? (
-        <ol className="max-h-[24rem] space-y-4 overflow-y-auto pr-1">
+        <motion.ol
+          variants={listContainer}
+          initial="hidden"
+          animate="show"
+          className="space-y-3"
+        >
           {items.map((entry) => (
-            <li
+            <motion.li
               key={entry.id}
-              className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+              variants={listItem}
+              className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {formatActivityMessage(entry)}
-                </p>
-                <time className="text-xs text-zinc-500">{formatDate(entry.createdAt)}</time>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatActivityMessage(entry)}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {entry.actorEmail}
+                  </p>
+                </div>
+                <time className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {formatDateTime(entry.createdAt)}
+                </time>
               </div>
-              <p className="mt-1 text-xs text-zinc-500">{entry.actorEmail}</p>
+
               {entry.changes?.length ? (
-                <ul className="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                <ul className="mt-3 space-y-1.5 text-sm">
                   {entry.changes.map((change) => (
-                    <li key={`${entry.id}-${change.field}`}>
-                      <span className="font-medium capitalize">{formatFieldLabel(change.field)}</span>
-                      {": "}
-                      {formatChangeValue(change.from)} → {formatChangeValue(change.to)}
+                    <li
+                      key={`${entry.id}-${change.field}`}
+                      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground"
+                    >
+                      <span className="font-medium text-foreground">
+                        {formatFieldLabel(change.field)}:
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="rounded-md bg-card px-1.5 py-0.5 text-xs text-foreground/80">
+                          {formatChangeValue(change.field, change.from)}
+                        </span>
+                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                        <span className="rounded-md bg-accent/40 px-1.5 py-0.5 text-xs text-accent-foreground">
+                          {formatChangeValue(change.field, change.to)}
+                        </span>
+                      </span>
                     </li>
                   ))}
                 </ul>
               ) : null}
-            </li>
+            </motion.li>
           ))}
-        </ol>
+        </motion.ol>
       ) : null}
-
-      <div className="mt-4 flex justify-end">
-        <Button variant="outline" onClick={onClose}>
-          Close
-        </Button>
-      </div>
     </Dialog>
   );
 }
@@ -109,9 +155,9 @@ function formatFieldLabel(field: string): string {
   return field.replace("_", " ");
 }
 
-function formatChangeValue(value: string | null): string {
+function formatChangeValue(field: string, value: string | null): string {
   if (value === null || value === "") return "empty";
-  if (fieldLooksLikeIsoDate(value)) {
+  if (field === "dueDate" || fieldLooksLikeIsoDate(value)) {
     return formatDate(value);
   }
   return value.replace("_", " ");

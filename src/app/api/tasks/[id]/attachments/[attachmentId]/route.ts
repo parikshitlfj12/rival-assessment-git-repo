@@ -5,6 +5,7 @@ import {
 } from "@/lib/attachments";
 import { AuthError, requireUser } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
+import { isAdminRole } from "@/lib/roles";
 
 type RouteContext = { params: Promise<{ id: string; attachmentId: string }> };
 
@@ -18,7 +19,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireUser(request);
     const { id, attachmentId } = await context.params;
-    const result = await getTaskAttachmentFile(user.id, id, attachmentId);
+    const result = await getTaskAttachmentFile(user.id, id, attachmentId, {
+      isAdmin: isAdminRole(user.role),
+    });
 
     if (!result) {
       return errorResponse("NOT_FOUND", "Attachment not found", 404);

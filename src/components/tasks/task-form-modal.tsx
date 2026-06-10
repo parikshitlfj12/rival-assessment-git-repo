@@ -1,17 +1,19 @@
 "use client";
 
 import { TaskPriority, TaskStatus } from "@prisma/client";
-import { useState } from "react";
+import { Calendar, ListChecks } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   ApiClientError,
-  fromDatetimeLocalValue,
-  toDatetimeLocalValue,
+  fromDateInputValue,
+  toDateInputValue,
 } from "@/lib/api-client";
 import type { TaskDto } from "@/lib/dto";
 import { taskFormSchema } from "@/lib/validators/tasks";
 import { TaskAttachmentsPanel } from "@/components/tasks/task-attachments-panel";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { FieldError, Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +33,8 @@ type TaskFormValues = {
   dueDate: string;
 };
 
+const TASK_FORM_ID = "task-form";
+
 function getInitialValues(task?: TaskDto | null): TaskFormValues {
   if (!task) {
     return {
@@ -47,23 +51,25 @@ function getInitialValues(task?: TaskDto | null): TaskFormValues {
     description: task.description ?? "",
     status: task.status,
     priority: task.priority,
-    dueDate: toDatetimeLocalValue(task.dueDate),
+    dueDate: toDateInputValue(task.dueDate),
   };
 }
 
-function TaskFormBody({
-  task,
-  onClose,
-  onSubmit,
-}: {
-  task?: TaskDto | null;
-  onClose: () => void;
-  onSubmit: (payload: Record<string, unknown>) => Promise<TaskDto>;
-}) {
-  const [values, setValues] = useState(() => getInitialValues(task));
+export function TaskFormModal({ open, onClose, task, onSubmit }: TaskFormModalProps) {
+  const [values, setValues] = useState<TaskFormValues>(() => getInitialValues(task));
   const [fields, setFields] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setValues(getInitialValues(task));
+      setFields({});
+      setFormError(null);
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on open transition or task change
+  }, [open, task?.id]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -88,7 +94,7 @@ function TaskFormBody({
         description: parsed.data.description || undefined,
         status: parsed.data.status,
         priority: parsed.data.priority,
-        dueDate: fromDatetimeLocalValue(parsed.data.dueDate ?? ""),
+        dueDate: fromDateInputValue(parsed.data.dueDate ?? ""),
       });
       onClose();
     } catch (error) {
@@ -104,113 +110,145 @@ function TaskFormBody({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {formError ? (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
-          {formError}
-        </p>
-      ) : null}
-      <div className="space-y-2">
-        <label htmlFor="title" className="text-sm font-medium">
-          Title
-        </label>
-        <Input
-          id="title"
-          value={values.title}
-          onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
-        />
-        {fields.title ? <p className="text-sm text-rose-600">{fields.title}</p> : null}
-      </div>
-      <div className="space-y-2">
-        <label htmlFor="description" className="text-sm font-medium">
-          Description
-        </label>
-        <Textarea
-          id="description"
-          value={values.description}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, description: event.target.value }))
-          }
-        />
-        {fields.description ? <p className="text-sm text-rose-600">{fields.description}</p> : null}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="status" className="text-sm font-medium">
-            Status
-          </label>
-          <Select
-            id="status"
-            value={values.status}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                status: event.target.value as TaskStatus,
-              }))
-            }
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={task ? "Edit task" : "New task"}
+      description={
+        task
+          ? "Update task details, status, and attachments."
+          : "Add a new task to your list."
+      }
+      size={task ? "xl" : "lg"}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={loading}
+            onClick={onClose}
+            className="min-h-11 w-full sm:w-auto"
           >
-            <option value={TaskStatus.todo}>Todo</option>
-            <option value={TaskStatus.in_progress}>In Progress</option>
-            <option value={TaskStatus.done}>Done</option>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="priority" className="text-sm font-medium">
-            Priority
-          </label>
-          <Select
-            id="priority"
-            value={values.priority}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                priority: event.target.value as TaskPriority,
-              }))
-            }
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form={TASK_FORM_ID}
+            loading={loading}
+            loadingText="Saving…"
+            className="min-h-11 w-full sm:w-auto"
           >
-            <option value={TaskPriority.low}>Low</option>
-            <option value={TaskPriority.medium}>Medium</option>
-            <option value={TaskPriority.high}>High</option>
-          </Select>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <label htmlFor="dueDate" className="text-sm font-medium">
-          Due date
-        </label>
-        <Input
-          id="dueDate"
-          type="datetime-local"
-          value={values.dueDate}
-          onChange={(event) =>
-            setValues((current) => ({ ...current, dueDate: event.target.value }))
-          }
-        />
-      </div>
-      {task ? <TaskAttachmentsPanel task={task} /> : null}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving…" : task ? "Save changes" : "Create task"}
-        </Button>
-      </div>
-    </form>
-  );
-}
+            {task ? "Save changes" : "Create task"}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id={TASK_FORM_ID}
+        onSubmit={handleSubmit}
+        className="space-y-5"
+        noValidate
+      >
+        {formError ? (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-sm text-destructive">
+            {formError}
+          </p>
+        ) : null}
 
-export function TaskFormModal({ open, onClose, task, onSubmit }: TaskFormModalProps) {
-  return (
-    <Dialog open={open} onClose={onClose} title={task ? "Edit task" : "New task"}>
-      {open ? (
-        <TaskFormBody
-          key={task?.id ?? "create"}
-          task={task}
-          onClose={onClose}
-          onSubmit={onSubmit}
-        />
-      ) : null}
+        <div className="space-y-2">
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            placeholder="What needs to be done?"
+            disabled={loading}
+            value={values.title}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, title: event.target.value }))
+            }
+          />
+          <FieldError message={fields.title} />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            placeholder="Add context, links, or acceptance criteria…"
+            disabled={loading}
+            value={values.description}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, description: event.target.value }))
+            }
+          />
+          <FieldError message={fields.description} />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="status" className="inline-flex items-center gap-1.5">
+              <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+              Status
+            </Label>
+            <Select
+              id="status"
+              disabled={loading}
+              value={values.status}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  status: event.target.value as TaskStatus,
+                }))
+              }
+            >
+              <option value={TaskStatus.todo}>Todo</option>
+              <option value={TaskStatus.in_progress}>In Progress</option>
+              <option value={TaskStatus.done}>Done</option>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="priority">Priority</Label>
+            <Select
+              id="priority"
+              disabled={loading}
+              value={values.priority}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  priority: event.target.value as TaskPriority,
+                }))
+              }
+            >
+              <option value={TaskPriority.low}>Low</option>
+              <option value={TaskPriority.medium}>Medium</option>
+              <option value={TaskPriority.high}>High</option>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="dueDate" className="inline-flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            Due date
+          </Label>
+          <Input
+            id="dueDate"
+            type="date"
+            disabled={loading}
+            value={values.dueDate}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, dueDate: event.target.value }))
+            }
+          />
+          <FieldError message={fields.dueDate} />
+        </div>
+
+        {task ? (
+          <div className="pt-2">
+            <TaskAttachmentsPanel task={task} />
+          </div>
+        ) : null}
+      </form>
     </Dialog>
   );
 }
