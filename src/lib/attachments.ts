@@ -21,6 +21,11 @@ async function assertTaskOwnership(userId: string, taskId: string): Promise<bool
   return Boolean(task);
 }
 
+function bufferFromDbData(data: Buffer | Uint8Array | null | undefined): Buffer | null {
+  if (data == null) return null;
+  return Buffer.isBuffer(data) ? data : Buffer.from(data);
+}
+
 export async function listTaskAttachments(
   userId: string,
   taskId: string,
@@ -67,14 +72,14 @@ export async function uploadTaskAttachment(
       mimeType: file.type,
       sizeBytes: file.size,
       storageKey,
+      data: buffer,
     },
   });
 
   try {
     await saveAttachmentFile(storageKey, buffer);
   } catch {
-    await prisma.taskAttachment.delete({ where: { id: attachment.id } });
-    return { error: "Failed to store attachment" };
+    // Filesystem is optional (local/Docker cache). Bytes in Postgres are the source of truth.
   }
 
   return { attachment: toTaskAttachmentDto(attachment) };
@@ -93,8 +98,17 @@ export async function getTaskAttachmentFile(
   });
   if (!attachment) return null;
 
-  const data = await readAttachmentFile(attachment.storageKey);
-  return { attachment: toTaskAttachmentDto(attachment), data };
+  const fromDb = bufferFromDbData(attachment.data);
+  if (fromDb) {
+    return { attachment: toTaskAttachmentDto(attachment), data: fromDb };
+  }
+
+  try {
+    const data = await readAttachmentFile(attachment.storageKey);
+    return { attachment: toTaskAttachmentDto(attachment), data };
+  } catch {
+    return null;
+  }
 }
 
 export async function deleteTaskAttachment(

@@ -135,8 +135,8 @@ All responses use `{ data, error }`.
 - Priority sorting uses in-memory ordering (high > medium > low) after fetching filtered rows; suitable for paginated personal task lists.
 - Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE, task file attachments, Docker Compose one-command local setup.
 - Real-time updates use an in-process SSE pub/sub channel (works for local dev and single-instance deploys; multi-instance production would need a shared bus).
-- Attachments are stored on the local filesystem under `UPLOAD_DIR` (default `.uploads/`). This works for local dev, Docker Compose (persistent volume), and any single-server deploy with a writable disk.
-- **Attachments on Vercel:** Serverless functions only allow writes under `/tmp`. Set `UPLOAD_DIR=/tmp/rival-uploads` (or similar) in Vercel env vars — without it, uploads fail because the project directory is read-only. With `/tmp`, uploads work for demo and single-session use, but files are **not** durable across redeploys, cold starts, or requests routed to a different instance. Task CRUD, auth, activity log, SSE, and admin work normally in production; durable attachments would need object storage (e.g. Supabase Storage, S3). Fully persistent attachment testing: local dev or Docker Compose.
+- Attachments store file bytes in PostgreSQL (`task_attachments.data`) so downloads work on serverless (Vercel) where `/tmp` is not shared across instances. The filesystem under `UPLOAD_DIR` (default `.uploads/`) is an optional local cache for dev and Docker Compose.
+- **Attachments on Vercel:** `UPLOAD_DIR=/tmp/rival-uploads` is optional (filesystem cache only). Upload and download work in production because bytes live in the database. Re-upload files that were added before this change if download still fails (older rows have metadata only). For very large files at scale, object storage (e.g. Supabase Storage, S3) would be preferable to storing blobs in Postgres.
 
 ## Deployment
 
@@ -170,10 +170,10 @@ For **Vercel**, use the **Transaction pooler** connection string (port `6543`) a
 Steps:
 
 1. Create a managed PostgreSQL database (Supabase or Neon) and copy the connection string.
-2. Configure Vercel env vars: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`, `NEXT_PUBLIC_APP_URL`, and `UPLOAD_DIR=/tmp/rival-uploads` if you want to demo attachments on the live URL.
+2. Configure Vercel env vars: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`, `NEXT_PUBLIC_APP_URL`. Optional: `UPLOAD_DIR=/tmp/rival-uploads` for a local filesystem cache on serverless.
 3. Run `npx prisma migrate deploy` against production once from your machine (direct Supabase connection).
 4. Deploy the Next.js app to Vercel (`postinstall` runs `prisma generate`).
-5. Smoke-test signup and task CRUD on the live URL. Optional: upload an attachment via **Edit task** on Vercel (demo-only; see trade-offs above). For persistent file storage, use local dev or Docker Compose.
+5. Smoke-test signup and task CRUD on the live URL. Upload and download attachments via **Edit task** (bytes stored in Postgres).
 
 ## Testing
 

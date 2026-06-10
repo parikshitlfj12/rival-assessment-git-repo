@@ -97,6 +97,7 @@ model TaskAttachment {
   mimeType     String   @map("mime_type") @db.VarChar(127)
   sizeBytes    Int      @map("size_bytes")
   storageKey   String   @map("storage_key") @db.VarChar(512)
+  data         Bytes?   @map("data")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
