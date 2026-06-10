@@ -82,7 +82,8 @@ All responses use `{ data, error }`.
 - Delete responses return HTTP 204 with an empty body.
 - Due date sorting uses NULLS LAST for ascending order and NULLS FIRST for descending order.
 - Priority sorting uses in-memory ordering (high > medium > low) after fetching filtered rows; suitable for paginated personal task lists.
-- Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log.
+- Bonus features implemented: optimistic UI, dark/light theme toggle, GitHub Actions CI, admin RBAC, per-task activity log, real-time task updates via SSE.
+- Real-time updates use an in-process SSE pub/sub channel (works for local dev and single-instance deploys; multi-instance production would need a shared bus).
 
 ## Deployment
 

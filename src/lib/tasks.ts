@@ -2,6 +2,7 @@ import { Prisma, TaskActivityAction, TaskPriority } from "@prisma/client";
 import { buildTaskChanges, recordTaskActivity } from "@/lib/activity";
 import { prisma } from "@/lib/db";
 import { toAdminTaskDto, toTaskDto, type AdminTaskDto, type TaskDto } from "@/lib/dto";
+import { publishTaskEvent } from "@/lib/task-events";
 import type { AdminListTasksQuery, CreateTaskInput, ListTasksQuery, UpdateTaskInput } from "@/lib/validators/tasks";
 
 const PRIORITY_ORDER: Record<TaskPriority, number> = {
@@ -141,7 +142,9 @@ export async function createTask(userId: string, input: CreateTaskInput): Promis
     return created;
   });
 
-  return toTaskDto(task);
+  const dto = toTaskDto(task);
+  publishTaskEvent(userId, { type: "task:created", task: dto });
+  return dto;
 }
 
 export async function updateTask(
@@ -175,13 +178,16 @@ export async function updateTask(
     return updated;
   });
 
-  return toTaskDto(task);
+  const dto = toTaskDto(task);
+  publishTaskEvent(userId, { type: "task:updated", task: dto });
+  return dto;
 }
 
 export async function deleteTask(userId: string, taskId: string): Promise<boolean> {
   const existing = await prisma.task.findFirst({ where: { id: taskId, userId } });
   if (!existing) return false;
   await prisma.task.delete({ where: { id: taskId } });
+  publishTaskEvent(userId, { type: "task:deleted", taskId });
   return true;
 }
 

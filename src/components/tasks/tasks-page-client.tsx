@@ -87,6 +87,15 @@ export function TasksPageClient() {
     }
   }, [queryString, router]);
 
+  const refreshTasksQuietly = useCallback(async () => {
+    try {
+      const result = await tasksApi.list(queryString);
+      setData(result);
+    } catch {
+      // Ignore background refresh errors; explicit loads still surface errors.
+    }
+  }, [queryString]);
+
   useEffect(() => {
     authApi
       .me()
@@ -109,6 +118,24 @@ export function TasksPageClient() {
     }, 300);
     return () => window.clearTimeout(timer);
   }, [searchInput, searchParams, updateParams]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const source = new EventSource("/api/tasks/events");
+
+    source.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data) as { type?: string };
+        if (payload.type === "connected") return;
+        void refreshTasksQuietly();
+      } catch {
+        // Ignore malformed SSE payloads.
+      }
+    };
+
+    return () => source.close();
+  }, [user, refreshTasksQuietly]);
 
   async function handleLogout() {
     await authApi.logout();
