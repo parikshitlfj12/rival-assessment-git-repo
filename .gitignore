@@ -1,0 +1,56 @@
+# Node modules
+node_modules/
+
+# Next.js build output
+.next/
+out/
+build/
+.next/cache/
+.next/standalone/
+
+# Vercel / hosting
+.vercel/
+.now/
+
+# Local environment files (do NOT commit secrets)
+.env
+.env.*.local
+!/.env.example
+
+# Prisma local DB
+prisma/dev.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.sublime-workspace
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage and test output
+coverage/
+.vitest/
+test-results/
+
+# Caches
+.cache/
+.parcel-cache/
+
+# Storybook
+storybook-static/
+
+# Misc
+*.tgz
+
